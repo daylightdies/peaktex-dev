@@ -38,6 +38,10 @@
             }
             .local-copy p { margin-bottom: 1.15rem; }
             .areas-links a { display: inline-block; margin: 0.15rem 0.15rem 0.15rem 0; }
+            .booking-card { max-width: 46rem; background: #fff; color: #212529; border-radius: 0.5rem; padding: 1.75rem; box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.2); }
+            .booking-card label { font-weight: 600; font-size: 0.95rem; }
+            .booking-card .btn { width: 100%; }
+            .bf-hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
         </style>
         <script type="application/ld+json">
         {
@@ -99,7 +103,7 @@
                         <hr class="primary small" />
                         <div class="masthead-subtitle">77387 is a PO Box ZIP for The Woodlands and Spring. Peak Technology Services serves businesses here as part of that area.</div>
                         <div class="masthead-cta mt-4">
-                            <a class="btn btn-primary btn-lg" href="mailto:john@peaktex.com?subject=Free%20IT%20assessment">Book a free IT assessment</a>
+                            <a class="btn btn-primary btn-lg" href="#assessment">Book a free IT assessment</a>
                             <a class="btn btn-outline-light btn-lg" href="tel:+12106091937">Call 210-609-1937</a>
                         </div>
                     </div>
@@ -172,14 +176,98 @@
             <div class="container">
                 <h2 class="page-section-heading text-uppercase">Let's take a look at your IT</h2>
                 <p class="lead mx-auto" style="max-width: 42rem;">Book a free IT assessment and we'll come to your location, see how you work, and tell you what's working, what isn't, and what we'd fix first. No obligation.</p>
-                <div class="mt-4">
-                    <a class="btn btn-primary btn-lg" href="mailto:john@peaktex.com?subject=Free%20IT%20assessment">Book a free IT assessment</a>
-                    <a class="btn btn-outline-light btn-lg" href="tel:+12106091937">Call 210-609-1937</a>
+                <div class="booking-card mx-auto mt-4 text-left">
+                    <form id="booking-form" novalidate>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="bf-name">Name *</label>
+                                <input class="form-control" id="bf-name" name="name" type="text" maxlength="100" autocomplete="name" required />
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="bf-company">Company *</label>
+                                <input class="form-control" id="bf-company" name="company" type="text" maxlength="150" autocomplete="organization" required />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="bf-email">Email *</label>
+                                <input class="form-control" id="bf-email" name="email" type="email" maxlength="254" autocomplete="email" required />
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="bf-phone">Phone *</label>
+                                <input class="form-control" id="bf-phone" name="phone" type="tel" maxlength="40" autocomplete="tel" required />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="bf-users">Number of users <span class="text-muted">(optional)</span></label>
+                                <input class="form-control" id="bf-users" name="users" type="number" min="1" max="99999" inputmode="numeric" />
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="bf-time">Preferred contact time <span class="text-muted">(optional)</span></label>
+                                <input class="form-control" id="bf-time" name="contactTime" type="text" maxlength="100" placeholder="e.g. weekday mornings" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="bf-message">How can we help? *</label>
+                            <textarea class="form-control" id="bf-message" name="message" rows="4" maxlength="4000" required></textarea>
+                        </div>
+                        <div class="bf-hp" aria-hidden="true">
+                            <label for="bf-website">Leave this field empty</label>
+                            <input id="bf-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+                        </div>
+                        <div id="bf-turnstile" class="mb-3"></div>
+                        <button class="btn btn-primary btn-lg" id="bf-submit" type="submit">Book a free IT assessment</button>
+                        <div id="bf-status" class="mt-3" role="status" aria-live="polite"></div>
+                    </form>
                 </div>
                 <p class="mt-4 mb-1">Or just call us at <a class="text-white" href="tel:+12106091937">210-609-1937</a></p>
                 <p class="mb-0">Prefer email? <a class="text-white" href="mailto:john@peaktex.com">john@peaktex.com</a></p>
             </div>
         </section>
+        <script>
+            (function () {
+                // Booking Worker + Turnstile widget "peaktex-booking".
+                var BOOKING_ENDPOINT = "https://peaktex-booking.john-60c.workers.dev/";
+                var TURNSTILE_SITEKEY = "0x4AAAAAAGKxW6q71VkjMK3L";
+                var form = document.getElementById("booking-form");
+                var statusEl = document.getElementById("bf-status");
+                var btn = document.getElementById("bf-submit");
+                var widgetId = null;
+                window.onTurnstileLoad = function () {
+                    widgetId = window.turnstile.render("#bf-turnstile", { sitekey: TURNSTILE_SITEKEY, action: "assessment" });
+                };
+                function show(msg, ok) {
+                    statusEl.className = "mt-3 alert " + (ok ? "alert-success" : "alert-danger");
+                    statusEl.textContent = msg;
+                }
+                form.addEventListener("submit", function (e) {
+                    e.preventDefault();
+                    var fields = ["name", "company", "email", "phone", "message"];
+                    var bad = fields.filter(function (n) { var el = form.elements[n]; el.classList.toggle("is-invalid", !el.checkValidity() || !el.value.trim()); return el.classList.contains("is-invalid"); });
+                    if (bad.length) { show("Please fill in the highlighted fields.", false); form.elements[bad[0]].focus(); return; }
+                    var data = {};
+                    new FormData(form).forEach(function (v, k) { data[k] = v; });
+                    data.page = location.href;
+                    btn.disabled = true; btn.textContent = "Sending...";
+                    fetch(BOOKING_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
+                        .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
+                        .then(function (res) {
+                            if (res.ok) { form.reset(); show("Thanks! Your request was sent. John will get back to you shortly.", true); }
+                            else {
+                                (res.fields || []).forEach(function (n) { if (form.elements[n]) form.elements[n].classList.add("is-invalid"); });
+                                show(res.error || "Something went wrong. Please call 210-609-1937 or email john@peaktex.com.", false);
+                            }
+                        })
+                        .catch(function () { show("We couldn't send your request. Please call 210-609-1937 or email john@peaktex.com.", false); })
+                        .finally(function () {
+                            btn.disabled = false; btn.textContent = "Book a free IT assessment";
+                            if (window.turnstile && widgetId !== null) window.turnstile.reset(widgetId);
+                        });
+                });
+            })();
+        </script>
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad&render=explicit" async defer></script>
         <footer class="footer text-center text-white-50">
             <div class="container">
                 <div class="row">
